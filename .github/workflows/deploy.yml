@@ -1,23 +1,48 @@
-name: Deploy Application
+name: Deploy to AWS EC2
 
 on:
   push:
     branches:
-      - main
+      - main  # Trigger deployment on push to the main branch
 
 jobs:
   deploy:
-    runs-on: self-hosted
-    
+    runs-on: self-hosted  # Ensure your EC2 instance has a GitHub Actions runner
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+    - name: Checkout Code
+      uses: actions/checkout@v4
 
-      - name: Install Dependencies
-        run: npm install  
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'  # Use LTS version for better security and stability
 
-      - name: Build and Test
-        run: npm run build 
-      - name: Restart Application
-        run: pm2 restart app  
+    - name: Install Dependencies
+      run: npm ci  # Faster than 'npm install' (uses package-lock.json for reproducibility)
 
+    - name: Run Unit Tests
+      run: npm test
+
+    - name: Run Integration Tests
+      run: npm run test:integration || echo "Integration tests failed, continuing deployment..."
+
+    - name: Build Docker Image
+      run: docker build -t my-html-app .
+
+    - name: Stop and Remove Old Container
+      run: |
+        docker stop my-html-container || true
+        docker rm my-html-container || true
+
+    - name: Run New Container
+      run: |
+        docker run -d -p 8080:80 --name my-html-container my-html-app
+
+    - name: Wait for Container to Initialize
+      run: sleep 10  # Adjust based on how long your app takes to start
+
+    - name: Verify Deployment
+      run: |
+        docker ps -a
+        docker logs my-html-container || true
