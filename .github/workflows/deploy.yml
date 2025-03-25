@@ -1,4 +1,4 @@
-name: Deploy to AWS EC2
+name: Deploy Application
 
 on:
   push:
@@ -8,17 +8,16 @@ on:
 jobs:
   deploy:
     runs-on: self-hosted
-
+    
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Install Dependencies
         run: npm install  
 
       - name: Build and Test
-        run: npm run build  
-
+        run: npm run build 
       - name: Restart Application
-        run: |
-          pm2 restart app.js  # Change to your command (e.g., systemctl restart myapp)
+        run: pm2 restart app  
+
